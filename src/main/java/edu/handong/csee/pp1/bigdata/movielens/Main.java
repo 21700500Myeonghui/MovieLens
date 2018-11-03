@@ -60,6 +60,7 @@ class Main
 		config(configFilePath) ;
 		
 		// (4) from loading data files to training a recommender and testing the recommender.
+		// (4) 데이터를 로드함으로것으로 부터 recommender을 교육하고 테스트함.
 		try {
 			// (4-1) Preparing file readers for both training and test data files
 			MovieData trainingData = new MovieData(config) ;
@@ -80,7 +81,7 @@ class Main
 				trainingData.show() ;
 			
 			// (4-4) Remove outliers (Noisy data cleansing by removing unordinary data)
-			trainingData.removeOutliers() ;
+			trainingData.removeOutliers() ;//100개 이상의 영화를 본 사람을 지움.
 
 			// (4-5) Training a recommender based on the configuration
 			Recommender recommender = new Recommender(config) ;

@@ -44,7 +44,7 @@ public class Recommender
 
 	public void train(MovieData data) {
 		TreeMap<Integer, HashSet<Integer>> 
-		baskets = data.getBaskets() ;
+		baskets = data.getBaskets() ;//baskets에는 자기가 좋아하는 영화의 정보가 들어있음
 		/* Baskets : UserID -> Set<MovieId> */
 
 		for (Integer user : baskets.keySet()) {
@@ -151,17 +151,48 @@ public class Recommender
 	}
 
 	private int predictPair(HashSet<Integer> anItemset, Integer j) {
-		/* TODO: implement this method */
+		/* TODO: implement this method */ 
 		
 		// Compute support, confidence, or lift. Based on their threshold, decide how to predict. Return 1 when metrics are satisfied by threshold, otherwise 0.
+		
+		if (anItemset.size() < 1)//만약 anItemset (I)의 사이즈가 2보다 작으면
+			return 0 ;//리턴한다.
+	
+		// Compute support, confidence, or lift. Based on their threshold, decide how to predict. Return 1 when metrics are satisfied by thresholds, otherwise 0.
+		// In the current implementation, we considered only confidence.
+		
+		for (Set<Integer> p : Sets.combinations(anItemset, 1)) {
+			
+			// the number baskets for I
+			Integer numBasketsForI = freqItemsetsWithSize1.get(-1);
+			
+			if (numBasketsForI == null)
+				continue;
+			
+			// the number of baskets for I U {j}
+			TreeSet<Integer> assocRule = new TreeSet<Integer>(p) ;
+			assocRule.add(j) ;
+			FrequentItemsetSize2 item = new FrequentItemsetSize2(assocRule) ;	
+			Integer numBasketsForIUnionj = freqItemsetsWithSize2.get(item) ; // All itemsets in freqItemsetsWithSize3 satisfy minimum support when the are computed.
+			if (numBasketsForIUnionj == null)
+				continue ;
+			
+			// compute confidence: The confidence of the rule I -> j is the ratio of the number of baskets for I U {j} and the number of baskets for I.
+			double confidence = (double) numBasketsForIUnionj / numBasketsForI;
+		
+			if (confidence >= confidence_threshold_rulesize_2) 
+				return 1;
+		}
 		return 0 ;
-	}
+	}	
+		
+
 
 	private int predictTriple(HashSet<Integer> anItemset, Integer j) { // association rule anItemset (I) -> j
 		
 		// only consider the case whose itemset size is >=2 since this method deals with {movie 1, movie 2} -> {movie 3} rules
-		if (anItemset.size() < 2)
-			return 0 ;
+		if (anItemset.size() < 2)//만약 anItemset (I)의 사이즈가 2보다 작으면
+			return 0 ;//리턴한다.
 
 		// Compute support, confidence, or lift. Based on their threshold, decide how to predict. Return 1 when metrics are satisfied by thresholds, otherwise 0.
 		// In the current implementation, we considered only confidence.
@@ -172,7 +203,7 @@ public class Recommender
 			Integer numBasketsForI = freqItemsetsWithSize2.get(new FrequentItemsetSize2(p)) ;
 			
 			if (numBasketsForI == null)
-				continue ;
+				continue;
 			
 			// the number of baskets for I U {j}
 			TreeSet<Integer> assocRule = new TreeSet<Integer>(p) ;
@@ -204,31 +235,31 @@ class FrequentItemsetSize2 implements Comparable
 	int second ;
 
 	public FrequentItemsetSize2(int first, int second) {
-		if (first <= second) {
+		if (first <= second) {//첫 번째가 더 작으면, 그대로
 			this.first = first ;
 			this.second = second ;
 		}
-		else {
+		else {//만약 첫 번째가 더 크면 순서를 바꿈.
 			this.first = second ;
 			this.second = first ;
 		}
 	}
 
-	public FrequentItemsetSize2(Set<Integer> s) {
-		Integer [] elem = s.toArray(new Integer[2]) ;
+	public FrequentItemsetSize2(Set<Integer> s) {//파라미터가 다름.
+		Integer [] elem = s.toArray(new Integer[2]);//array의 사이즈가 2. s는 파라미터.
 		// order item ids!
 		if (elem[0] < elem[1]) {
 			this.first = elem[0] ;
 			this.second = elem[1] ;
 		}
 		else {
-			this.first = elem[1] ;
-			this.second = elem[0] ;
+			this.first = elem[1];
+			this.second = elem[0];
 		}
 	}
 
 	@Override
-	public int compareTo(Object obj) { // this method is used for sorting when using TreeMap
+	 public int compareTo(Object obj) { // this method is used for sorting when using TreeMap. 이 메소드는 트리맵을 솔팅할 때 사용함.
 		FrequentItemsetSize2 p = (FrequentItemsetSize2) obj ;
 
 		if (this.first < p.first) 
@@ -248,12 +279,50 @@ class FrequentItemsetSize3 implements Comparable
 	FrequentItemsetSize3(Set<Integer> s) {
 		/* TODO: implement this method */
 		
+		Integer [] elem = s.toArray(new Integer[3]);
+		items = new int[3];
+		
+		int max=elem[0];
+		for(int i=1;i<3;i++) {
+			if(max<elem[i])
+				max=elem[i];
+		}
+		this.items[2]=max;
+		
+		int min=elem[0];
+		for(int i=1;i<3;i++) {
+			if(min>elem[i])
+				min=elem[i];
+		}
+		this.items[0]=min;
+		
+		for(int i=0;i<3;i++)
+		{
+			if(elem[i]!=min && elem[i]!=max)
+				this.items[1]=elem[i];
+		}
+	
 		// values in s must be sorted and save into items array
+		//s에 있는 값들은 정렬되어야 하고, items array에 저장되어야 함.
+		
 	}
 
 	@Override
 	public int compareTo(Object obj) {  // this method is used for sorting when using TreeMap
 		/* TODO: implement this method */
-		return 0 ;
+		
+		FrequentItemsetSize3 p = (FrequentItemsetSize3) obj ;
+
+		if (this.items[0] < p.items[0]) 
+			return -1 ;
+		if (this.items[0] > p.items[0])
+			return 1 ;
+		if (this.items[1] < p.items[1]) 
+			return -1 ;
+		if (this.items[1] > p.items[1])
+			return 1 ;
+
+		return (this.items[2] - p.items[2]) ;
+
 	}
 }
